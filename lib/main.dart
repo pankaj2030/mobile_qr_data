@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'qr_scanner_page.dart';
 import 'package:intl/intl.dart';
 
@@ -7,10 +9,16 @@ void main() {
   runApp(attendance());
 }
 
-class attendance extends StatelessWidget {
+class attendance extends StatefulWidget {
+  @override
+  State<attendance> createState() => _attendanceState();
+}
+
+class _attendanceState extends State<attendance> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'QR Code Event Scanner',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -68,6 +76,17 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  bool isChecked = false;
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,8 +134,64 @@ class _LoginPageState extends State<LoginPage> {
                 keyboardType: TextInputType.phone,
               ),
               SizedBox(height: 20),
+
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Checkbox(
+                    value: isChecked,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        isChecked = value ?? false;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'By continuing, you agree to Pinterest\'s ',
+                        style: TextStyle(color: Colors.black),
+                        children: [
+                          TextSpan(
+                            text: 'Terms of Service',
+                            style: TextStyle(color: Colors.blue),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                _launchURL('https://heartfulness.org/in/terms');
+                              },
+                          ),
+                          TextSpan(
+                            text: ' and ',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: TextStyle(color: Colors.blue),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                _launchURL('https://heartfulness.org/in/privacy-policy');
+                              },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               ElevatedButton(
-                onPressed: _submitUserDetails,
+                onPressed: () {
+                  if (!isChecked) {
+                    // Show a snackbar
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Please accept the terms and conditions to proceed.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    _submitUserDetails();
+                  }
+                },
                 child: Text('Submit'),
               ),
             ],
